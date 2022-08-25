@@ -5,7 +5,7 @@ import sys
 """ Objectives: Create Gaussian 16 input geometries (without using Gaussview)"""
 # Output file name
 option = int(sys.argv[1])
-if option != 5:
+if option != 5 and option !=6:
     g16_input = sys.argv[2]
 
 # Options:
@@ -172,3 +172,45 @@ if option == 5:
         for line in data:
             f.write(line)
 
+if option == 6: ### Counterpoise
+    import glob
+    foutput = 'test.out'
+    finput = 'test.gjf'
+    output = 'counterpoise'
+    subprocess.call("mkdir {}".format(output), shell=True)
+    subprocess.call("cp {} {}".format(foutput, output), shell=True)
+    subprocess.call("cp {} {}".format(finput, output), shell=True)
+    subprocess.call("cp sub.gauss {}".format(output), shell=True)
+    os.chdir(output)
+    print(os.getcwd())
+
+    # Get output geometry from awk 
+    start = int(subprocess.check_output("awk '/Input/{{print NR}}' {} | tail -1".format(foutput), shell=True).decode('ascii'))
+    end = int(subprocess.check_output("awk '/Rotational constant/{{print NR}}' {} | tail -1".format(foutput), shell=True).decode('ascii'))
+
+    if end - start > 200:
+        end = int(subprocess.check_output("awk '/Rotational constant/{{print NR}}' {} | tail -2 | head -1".format(foutput), shell=True).decode('ascii'))
+    geometry_output = subprocess.check_output("awk 'NR>={} && NR<={} {{print}}' {}".format(start+5, end-2,foutput), shell=True).decode('ascii')
+    geometry_output = filter(None, geometry_output.split('\n'))
+    fcoords = []
+    for line in geometry_output:
+        lined = line.split()
+        fcoords.append([lined[-3], lined[-2], lined[-1]])
+    data = []
+    with open(finput, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            data.append(line)
+
+    coord_i = 0
+    for index, line in enumerate(data):
+        line = line.split()
+        if iscoord(line):
+            newline = line[0] + ' ' + line[1] + ' ' + fcoords[coord_i][0] + ' ' + fcoords[coord_i][1] +' ' + fcoords[coord_i][2] + '\n'
+            data[index] = newline
+            coord_i = coord_i +1
+
+    with open(finput, 'w') as f:
+        for line in data:
+            f.write(line)
+    subprocess.call("sed -i 's/opt freq/sp counterpoise=2/' {}".format(finput), shell=True)
