@@ -32,7 +32,7 @@ def istint(value):
 
 def iscoord(line):
     if len(line) >= 4:
-        if False not in map(isfloat, line[-3:]):
+        if False not in map(isfloat, line[-3:]) and isfloat(line[0]) == False:
             return True
         else:
             return False
