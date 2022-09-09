@@ -38,7 +38,18 @@ def iscoord(line):
             return False
     else:
         return False
+def read_gaussian_input(fname):
+    data = []
+    with open(fname, "r") as f:
+        for line in f:
+            data.append(line)
+    for line in data:
+        line = line.strip().split()
 
+def write_gaussian_input(fname, data):
+    return True    
+if option == 0:
+    read_gaussian_input("test.gjf")
 if option == 1:
     # Get output geometry from awk 
     start = int(subprocess.check_output("awk '/Input/{{print NR}}' {} | tail -1".format(g16_input), shell=True).decode('ascii'))
