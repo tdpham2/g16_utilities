@@ -98,3 +98,17 @@ def continue_calculation(finput="test.gjf",foutput="test.out", fileout="new.gjf"
     if counterpoise == True:
         subprocess.call("sed -i 's/opt freq/sp counterpoise=2/' {}".format(fileout), shell=True)
 
+# Fragment indice: {fragment_number: list of atoms}
+fragment_indice = {1: list(range(0,102))}
+
+def add_fragment(fragment_indice,finput="test.gjf", fileout="new.gjf"):
+    coords = gjf_reader(finput=finput,only_coords=True)
+
+    for fragment in fragment_indice:
+        for k in fragment_indice[fragment]:
+            coords[k][0] = coords[k][0] + '(Fragment={})'.format(fragment)
+    with open("temp.xyz", 'w') as f:
+        for item in coords:
+            f.write(" ".join(item) + "\n")
+#continue_calculation()
+add_fragment(fragment_indice)
