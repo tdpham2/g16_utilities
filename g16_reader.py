@@ -44,10 +44,10 @@ def out_reader(foutput="test.out"):
     return True
 
 # Get final geometry. If "freq" is in route, then the position is slightly different
-def get_final_geometry(finput="test.gjf",foutput="test.out", writexyz=True, fileout="final_optimized.xyz"):
+def get_final_geometry(finput="test.gjf",foutput="test.out", writexyz=True, fileout="final_optimized.xyz", finished=True):
     data = gjf_reader(finput=finput)
     route = data[3].strip().split()
-    if "freq" in route:
+    if "freq" in route and finished==True:
         # Where to find the geometry
         npos = 2
     else:
@@ -71,16 +71,17 @@ def get_final_geometry(finput="test.gjf",foutput="test.out", writexyz=True, file
         f.write('\n')
         for line in output:
             f.write(' '.join(line) + '\n')
-            print(' '.join(line))
         f.close()
 
     return output
 
 #Continue calculation from previously calculation 
-def continue_calculation(finput="test.gjf",foutput="test.out", fileout="new.gjf", counterpoise=False):
-    final_geo = get_final_geometry(finput=finput, foutput=foutput, writexyz=False)
+def continue_calculation(finput="test.gjf",foutput="test.out", fileout="new.gjf", counterpoise=False, finished=False):
+    import glob
+    final_geo = get_final_geometry(finput=finput, foutput=foutput, writexyz=False, finished=finished)
     initial_geo = gjf_reader(finput=finput, only_coords=True)
     merged_geo = []
+
     for i, j in zip(initial_geo, final_geo):
         merged_geo.append([i[0], i[1], j[1], j[2], j[3], '\n'])
     # Keep all input section from orginal file
@@ -92,11 +93,21 @@ def continue_calculation(finput="test.gjf",foutput="test.out", fileout="new.gjf"
         if iscoord(line):
             inputf[index] = ' '.join(merged_geo[coord_counter])
             coord_counter = coord_counter + 1
+
+    if counterpoise == False:
+        rep = len(glob.glob("run*/"))
+        oldrun = 'run' + str(rep)
+        subprocess.call("mkdir {}".format(oldrun), shell=True)
+        subprocess.call("mv test.out test.gjf sub.gauss {}".format(oldrun), shell=True)
+
     with open(fileout, "w") as f:
         for line in inputf:
             f.write(line)
     if counterpoise == True:
         subprocess.call("sed -i 's/opt freq/sp counterpoise=2/' {}".format(fileout), shell=True)
+        os.mkdir("counterpoise")
+        subprocess.call("cp {} counterpoise/new.gjf".format(fileout), shell=True)
+        subprocess.call("cp ~/script/sub.gauss.short counterpoise/", shell=True)
 
 # Fragment indice: {fragment_number: list of atoms}
 fragment_indice = {1: list(range(0,102))}
@@ -110,5 +121,7 @@ def add_fragment(fragment_indice,finput="test.gjf", fileout="new.gjf"):
     with open("temp.xyz", 'w') as f:
         for item in coords:
             f.write(" ".join(item) + "\n")
-#continue_calculation()
-add_fragment(fragment_indice)
+#continue_calculation(counterpoise=True)
+continue_calculation(fileout='test.gjf', counterpoise=False)
+
+#add_fragment(fragment_indice)
